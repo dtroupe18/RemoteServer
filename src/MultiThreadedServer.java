@@ -7,10 +7,13 @@ import java.net.*;
 import java.util.Date;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import javafx.scene.control.Button;
 
 public class MultiThreadedServer extends Application {
     // Text area to display content
@@ -27,10 +30,27 @@ public class MultiThreadedServer extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Scene scene = new Scene(new ScrollPane(textArea), 450, 450);
+        BorderPane paneForTextField = new BorderPane();
+        paneForTextField.setPadding(new Insets(5, 5, 15, 5));
+        paneForTextField.setCenter(textArea);
+        ScrollPane scrollPane = new ScrollPane(textArea);
+        Button quit = new Button("Quit");
+        paneForTextField.setCenter(scrollPane);
+        paneForTextField.setBottom(quit);
+        Scene scene = new Scene(paneForTextField,  450, 450);
+
+
         primaryStage.setTitle("MultiThreaded Server");
         primaryStage.setScene(scene);
         primaryStage.show();
+
+        quit.setOnAction(e -> {
+            boolean toQuit = PopUpWindows.quit();
+            if (toQuit) {
+                Platform.exit();
+                System.exit(0);
+            }
+        });
 
         // MULTI-THREADING
         new Thread( () -> {
@@ -87,24 +107,34 @@ public class MultiThreadedServer extends Application {
                     readFromClient();
 
                     if (clientConnected) {
-                        rotated = rotateString(toRotate);
+                        if (toRotate.charAt(0) == '#') {
+                            rotated = rotateStringR(toRotate.substring(1));
+
+                        }
+                        else {
+                            rotated = rotateString(toRotate);
+                        }
+
 
                         // send area back to the client
                         writeObjectToClient(rotated);
                     }
 
-                    Platform.runLater(() -> {
-                        textArea.appendText("String received from client: " +
-                                toRotate + "\n");
-
-                        textArea.appendText("Rotated String: " + rotated + "\n");
-                    });
+//                    Platform.runLater(() -> {
+//                        textArea.appendText("String received from client: " +
+//                                toRotate + "\n");
+//
+//                        textArea.appendText("Rotated String: " + rotated + "\n");
+//                    });
                 }
+
             }
             catch (IOException ex) {
                 ex.printStackTrace();
             }
         }
+
+
     }
 
     private void readFromClient() {
@@ -119,7 +149,8 @@ public class MultiThreadedServer extends Application {
         } catch (ClassNotFoundException cnf) {
             textArea.appendText(cnf.getLocalizedMessage());
         } catch (IOException ioe2) {
-            textArea.appendText(ioe2.getMessage());
+            System.out.println("Client Quit");
+            Thread.currentThread().stop();
         }
     }
 
@@ -138,5 +169,13 @@ public class MultiThreadedServer extends Application {
         s += tmp;
 
         return s;
+    }
+
+    private String rotateStringR(String s) {
+        String tmp = s.substring(s.length() - 1);
+        s = s.substring(0, s.length() - 1);
+        tmp += s;
+
+        return tmp;
     }
 }
